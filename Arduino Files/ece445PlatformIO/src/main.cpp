@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 const int buttonPin = 25;
 const int xPin = 26;
 const int yPin = 27;
@@ -41,7 +43,7 @@ void loop() {
 
   Serial.println("x: " + String(xNorm, 2) +
                  " y: " + String(yNorm, 2) +
-                 " w: " + String(w, 1)
+                 " w: " + String(w, 1));
 
   delay(20);
 }
