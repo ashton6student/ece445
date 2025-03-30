@@ -2,14 +2,12 @@
 #include <math.h>
 
 //define pins
-const int buttonPin1 = 33;
-const int buttonPin2 = 25;
 const int xPin = 26;
 const int yPin = 27;
 
 //define global variables
 float xMin, xMax, yMin, yMax;
-
+float w;
 bool lastButton = LOW;
 int pressCount = 0;
 
@@ -23,10 +21,47 @@ float yfiltered = 0;
 float xnext = 0;
 float ynext = 0;
 
+//New button stuff
+const int NUM_BUTTONS = 2;
+const int buttonPins[NUM_BUTTONS] = {33, 25}; // Replace with your actual pins
+const unsigned long debounceDelay = 50;
+
+struct Button {
+  bool currentState;
+  bool lastState;
+  bool debouncedState;
+  unsigned long lastDebounceTime;
+};
+
+Button buttons[NUM_BUTTONS];
+
+void handleButtonPress(int buttonIndex) {
+  switch (buttonIndex) {
+    case 0:
+      // Example for button 0
+      if (pressCount == 0) {
+        lower = w;
+        pressCount++;
+      } else if (pressCount == 1) {
+        upper = w;
+        pressCount = 0;
+      }
+      break;
+    case 1:
+      break;
+    case 2:
+      break;
+    case 3:
+      break;
+  }
+}
+
 void setup() {
   Serial.begin(115200);
-  pinMode(buttonPin, INPUT); 
-
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    pinMode(buttonPins[i], INPUT);
+    buttons[i] = {LOW, LOW, LOW, 0};
+  }
   //Set initial values
   xMin = analogRead(xPin);
   xMax = analogRead(xPin);
@@ -68,44 +103,30 @@ void loop() {
   float yNorm = (yfiltered - yMid) / yHalf;
 
   //Get angle, map to [0, 360)
-  float w = (atan2(yNorm, xNorm) * 180.0 / PI) + 180;  // w is in degrees, [-180, 180]
+  w = (atan2(yNorm, xNorm) * 180.0 / PI) + 180;  // w is in degrees, [-180, 180]
 
-  //Get bounds
-  const unsigned long debounceDelay = 20; // ms
-  unsigned long lastDebounceTime = 0;
-  
-  bool button = digitalRead(buttonPin1);
-  static bool lastButton = LOW;
-  static bool debouncedState = LOW;
-  
+  //Button stuff
   unsigned long currentTime = millis();
-  
-  // Check if the input changed
-  if (button != lastButton) {
-    lastDebounceTime = currentTime;  // reset debounce timer
-  }
-  
-  if ((currentTime - lastDebounceTime) > debounceDelay) {
-    // Button has been stable long enough
-    if (button != debouncedState) {
-      debouncedState = button;
-  
-      if (debouncedState == HIGH) {
-        // Rising edge: clean button press
-        if (pressCount == 0) {
-          lower = w;
-          pressCount++;
-          Serial.println("Lower bound set");
-        } else if (pressCount == 1) {
-          upper = w;
-          pressCount = 0;
-          Serial.println("Upper bound set");
+
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    buttons[i].currentState = digitalRead(buttonPins[i]);
+
+    if (buttons[i].currentState != buttons[i].lastState) {
+      buttons[i].lastDebounceTime = currentTime;
+    }
+
+    if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay) {
+      if (buttons[i].currentState != buttons[i].debouncedState) {
+        buttons[i].debouncedState = buttons[i].currentState;
+
+        if (buttons[i].debouncedState == HIGH) {
+          handleButtonPress(i);  // handle press based on index
         }
       }
     }
+
+    buttons[i].lastState = buttons[i].currentState;
   }
-  
-  lastButton = button;
   
   //Map (lower, upper) -> (0, 1)
   //First we need to shift our read in phase w such that w = 0 if it is lower. Assuming the delta(lower, upper) < 360, this will also fix the issue where lower > upper due to phase reset.
@@ -130,8 +151,8 @@ void loop() {
   //                " filtered y: " + String(yfiltered, 2) +
   //                " w: " + String(w, 2));
 
-  Serial.println("button: " + String(button) +
-                 " last button: " + String(lastButton) +
+  Serial.println("button 0: " + String(buttons[0].currentState) +
+                 " button 1: " + String(buttons[1].currentState) +
                  " press count: " + String(pressCount) +
                  " w: " + String(w, 1) +
                  " lower: " + String(lower, 2) +
@@ -142,3 +163,5 @@ void loop() {
 
   delay(20);
 }
+
+
