@@ -2,7 +2,8 @@
 #include <math.h>
 
 //define pins
-const int buttonPin = 25;
+const int buttonPin1 = 33;
+const int buttonPin2 = 25;
 const int xPin = 26;
 const int yPin = 27;
 
@@ -26,7 +27,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(buttonPin, INPUT); 
 
-  //Get initial values
+  //Set initial values
   xMin = analogRead(xPin);
   xMax = analogRead(xPin);
   yMin = analogRead(yPin);
@@ -73,7 +74,7 @@ void loop() {
   const unsigned long debounceDelay = 20; // ms
   unsigned long lastDebounceTime = 0;
   
-  bool button = digitalRead(buttonPin);
+  bool button = digitalRead(buttonPin1);
   static bool lastButton = LOW;
   static bool debouncedState = LOW;
   
