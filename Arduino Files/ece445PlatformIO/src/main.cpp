@@ -225,5 +225,19 @@ void loop() {
   Serial.print(" | ");
   Serial.println(buttons[1].debouncedState ? "1" : "0");
 
+  // SensorPair &s = sensors[activeIndex];
+  // float range = fmod(s.upper - s.lower + 360.0, 360.0);
+  // float delta = fmod(s.w - s.lower + 360.0 + tolerance, 360.0);
+
+  // Serial.println("button 0: " + String(buttons[0].currentState) +
+  //               " button 1: " + String(buttons[1].currentState) +
+  //               " press count: " + String(s.pressCount) +
+  //               " w: " + String(s.w, 1) +
+  //               " lower: " + String(s.lower, 2) +
+  //               " upper: " + String(s.upper, 2) +
+  //               " range: " + String(range, 2) +
+  //               " delta: " + String(delta, 2) +
+  //               " mapped: " + String(s.mapped, 2));
+
   delay(20);
 }
