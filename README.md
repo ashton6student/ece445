@@ -1,1 +1,2 @@
 # ece445
+This is our digital notebook for ECE445 Senior Design at UIUC. Here you can find four folders. 3D files contains the custom designed 3D objects for our haptic module and gloves. In Arduino Files contains our Platform IO firmware we write to the ESP32 contained in main.cpp. The PCB files contains our PCB files for the project. The Unity files contains both our C# used to parse data in our Unity scene, as well as the .blend file for the virtual hand.
