@@ -1,19 +1,8 @@
 import serial
 import time
 
-PORT = "/dev/ttys002"
+PORT = "COM25"
 BAUD = 115200
-
-def alternating_caps(s: str) -> str:
-    out = []
-    upper = True
-    for c in s:
-        if c.isalpha():
-            out.append(c.upper() if upper else c.lower())
-            upper = not upper
-        else:
-            out.append(c)
-    return ''.join(out)
 
 def main():
     print(f"[*] Opening serial port: {PORT}")
@@ -39,14 +28,7 @@ def main():
             except UnicodeDecodeError:
                 decoded = "<invalid UTF-8>"
 
-            expected = alternating_caps(TEST_STRING)
-            print(f"[*] ESP-BLE echoed: {decoded}")
-            print(f"[*] Expected:     {expected}")
-
-            if decoded == expected:
-                print("[✓] Alternating caps verified")
-            else:
-                print("[✗] Mismatch")
+            print(f"[*] ESP-BLE said: {decoded}")
 
             print("")
 

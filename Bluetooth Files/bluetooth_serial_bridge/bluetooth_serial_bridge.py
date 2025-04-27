@@ -4,7 +4,7 @@ import platform
 import serial
 from bleak import BleakClient, BleakScanner
 
-DEVICE_NAME = "ESP32-BLE-UART"
+DEVICE_NAME = "ESP32-Finger-Sensors"
 TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"  # ESP → PC (Notify)
 RX_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  # PC → ESP (Write)
 BAUD = 115200
@@ -18,7 +18,7 @@ def setup_virtual_serial():
         ser = os.fdopen(master_fd, "rb+", buffering=0)
         return ser, slave_name
     elif system == "Windows": # com0com to get virtual COM ports. Fuck Windows.
-        COM_PORT = "COM6"  # Adjust if needed
+        COM_PORT = "COM22"  # Adjust if needed
         print(f"[Windows] Using COM port: {COM_PORT}")
         ser = serial.Serial(COM_PORT, BAUD, timeout=0)
         return ser, COM_PORT
@@ -59,7 +59,7 @@ async def main():
             ble_rx_buffer += data
             while b'\n' in ble_rx_buffer:
                 line, _, ble_rx_buffer = ble_rx_buffer.partition(b'\n')
-                line += b'\n'
+                line += b'\r\n'
                 serial_conn.write(line)
                 serial_conn.flush()
 

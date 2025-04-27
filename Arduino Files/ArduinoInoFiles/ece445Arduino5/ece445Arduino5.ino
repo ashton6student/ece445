@@ -1,6 +1,75 @@
 #include <Arduino.h>
 #include <math.h>
 
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
+
+#define SERVICE_UUID        "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_TX   "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_RX   "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+
+// Bluetooth
+BLECharacteristic* pTxCharacteristic;
+bool deviceConnected = false;
+
+#define RX_BUFFER_SIZE 256
+char rxBuffer[RX_BUFFER_SIZE];
+volatile int rxIndex = 0;
+volatile bool rxLineReady = false;
+
+#define TX_BUFFER_SIZE 256
+char txBuffer[TX_BUFFER_SIZE];
+int txIndex = 0;
+
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) { deviceConnected = true; }
+  void onDisconnect(BLEServer* pServer) { deviceConnected = false; }
+};
+
+class MyCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* pCharacteristic) {
+    const uint8_t* data = pCharacteristic->getData();
+    size_t len = pCharacteristic->getLength();
+    for (size_t i = 0; i < len && rxIndex < RX_BUFFER_SIZE - 1; ++i) {
+      char c = (char)data[i];
+      rxBuffer[rxIndex++] = c;
+      if (c == '\n') {
+        rxBuffer[rxIndex] = '\0';
+        rxLineReady = true;
+        rxIndex = 0;
+        break;
+      }
+    }
+  }
+};
+
+void BLEUartBufferedSend(const char* msg) {
+  if (!deviceConnected || !pTxCharacteristic) return;
+  for (int i = 0; msg[i] != '\0'; ++i) {
+    char c = msg[i];
+    if (txIndex < TX_BUFFER_SIZE - 1) {
+      txBuffer[txIndex++] = c;
+    }
+    if (c == '\n') {
+      txBuffer[txIndex] = '\0';
+      pTxCharacteristic->setValue((uint8_t*)txBuffer, txIndex);
+      pTxCharacteristic->notify();
+      txIndex = 0;
+    }
+  }
+}
+
+int BLEUartReceive(char* buf, int maxLen) {
+  if (rxLineReady) {
+    rxLineReady = false;
+    int len = strlcpy(buf, rxBuffer, maxLen);
+    return len;
+  }
+  return 0;
+}
+
 // Led stuff
 const int ledPin = 45;
 
@@ -18,13 +87,16 @@ float tolerance = 5.0;
 int pressCount = 0;
 
 // Button stuff
-const int NUM_BUTTONS = 2;
+const int NUM_BUTTONS = 1;
 
-const int buttonPins[NUM_BUTTONS] = {13, 14};
+const int buttonPins[NUM_BUTTONS] = {12};
 
 const unsigned long debounceDelay = 50;
 
 // Joystick stuff
+const int joyXPin = 14;
+const int joyYPin = 13;
+
 float joyXFiltered = 0;
 float joyYFiltered = 0;
 float joystickAlpha = 0.3;
@@ -67,10 +139,6 @@ void handleButtonPress(int buttonIndex) {
         for (int i = 0; i < NUM_SENSORS; i++) {
           sensors[i].upper = sensors[i].w;
         }
-      }  else if (pressCount == 2) {
-        joystickFlag = true;
-        joyXFiltered = analogRead(buttonPins[0]);
-        joyYFiltered = analogRead(buttonPins[1]);
       }
       break;
 
@@ -99,9 +167,38 @@ void generateOverrideValues() {
 
 void setup() {
   Serial.begin(115200);
+  
+  //Bluetooth Setup
+  BLEDevice::init("ESP32-Finger-Sensors");
+  BLEServer* pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+  
+  BLEService* pService = pServer->createService(SERVICE_UUID);
+  
+  pTxCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_TX,
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
+  pTxCharacteristic->addDescriptor(new BLE2902());
+  
+  BLECharacteristic* pRxCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_RX,
+    BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
+  );
+  pRxCharacteristic->setCallbacks(new MyCallbacks());
+  
+  pService->start();
+  pServer->getAdvertising()->start();
+
+  Serial.println("BLE UART Ready");
+
   // Setup blink led
   pinMode(ledPin, OUTPUT);
 
+  //Setup joystick
+  pinMode(joyXPin, INPUT);
+  pinMode(joyYPin, INPUT);
+  
   //Setup buttons struct
   for (int i = 0; i < NUM_BUTTONS; i++) {
     pinMode(buttonPins[i], INPUT);
@@ -133,24 +230,20 @@ void setup() {
 
 void loop() {
   unsigned long currentTime = millis();
-  // Blink Led
   digitalWrite(ledPin, ledValue);
   ledValue = !ledValue;
 
   // --- Button Debouncing ---
-  if(!joystickFlag){
+  if (!joystickFlag) {
     for (int i = 0; i < NUM_BUTTONS; i++) {
       buttons[i].currentState = digitalRead(buttonPins[i]);
-
       if (buttons[i].currentState != buttons[i].lastState) {
         buttons[i].lastDebounceTime = currentTime;
       }
-
       if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay) {
         if (buttons[i].currentState != buttons[i].debouncedState) {
           buttons[i].debouncedState = buttons[i].currentState;
-
-          if (buttons[i].debouncedState == HIGH) {
+          if (buttons[i].debouncedState == LOW) {
             handleButtonPress(i);
           }
         }
@@ -159,89 +252,63 @@ void loop() {
     }
   }
 
-  // --- Sensor Processing ---
+// --- Sensor Processing ---
   for (int i = 0; i < NUM_SENSORS; i++) {
-    SensorPair &s = sensors[i];
-
-    float x = analogRead(s.xPin);
-    float y = analogRead(s.yPin);
-
-    float xNext = alpha * x + (1 - alpha) * s.xFiltered;
-    float yNext = alpha * y + (1 - alpha) * s.yFiltered;
-
-    if (abs(xNext - s.xFiltered) > threshold) s.xFiltered = xNext;
-    if (abs(yNext - s.yFiltered) > threshold) s.yFiltered = yNext;
-
-    if (s.xFiltered < s.xMin) s.xMin = s.xFiltered;
-    if (s.xFiltered > s.xMax) s.xMax = s.xFiltered;
-    if (s.yFiltered < s.yMin) s.yMin = s.yFiltered;
-    if (s.yFiltered > s.yMax) s.yMax = s.yFiltered;
-
-    float xMid = (s.xMax + s.xMin) / 2.0;
-    float xHalf = (s.xMax - s.xMin) / 2.0;
-    float xNorm = (s.xFiltered - xMid) / xHalf;
-
-    float yMid = (s.yMax + s.yMin) / 2.0;
-    float yHalf = (s.yMax - s.yMin) / 2.0;
-    float yNorm = (s.yFiltered - yMid) / yHalf;
-
-    s.w = atan2(yNorm, xNorm) * 180.0 / PI + 180.0;
-
-    float range = fmod(s.upper - s.lower + 360.0, 360.0);
-    float delta = fmod(s.w - s.lower + 360.0 + tolerance, 360.0);
-    s.mapped = (delta > range) ? 1.0 : delta / range;
+      SensorPair &s = sensors[i];
+      float x = analogRead(s.xPin);
+      float y = analogRead(s.yPin);
+      float xNext = alpha * x + (1 - alpha) * s.xFiltered;
+      float yNext = alpha * y + (1 - alpha) * s.yFiltered;
+  
+      if (abs(xNext - s.xFiltered) > threshold) s.xFiltered = xNext;
+      if (abs(yNext - s.yFiltered) > threshold) s.yFiltered = yNext;
+  
+      if (s.xFiltered < s.xMin) s.xMin = s.xFiltered;
+      if (s.xFiltered > s.xMax) s.xMax = s.xFiltered;
+      if (s.yFiltered < s.yMin) s.yMin = s.yFiltered;
+      if (s.yFiltered > s.yMax) s.yMax = s.yFiltered;
+  
+      float xMid = (s.xMax + s.xMin) / 2.0;
+      float xHalf = (s.xMax - s.xMin) / 2.0;
+      float xNorm = (s.xFiltered - xMid) / xHalf;
+      float yMid = (s.yMax + s.yMin) / 2.0;
+      float yHalf = (s.yMax - s.yMin) / 2.0;
+      float yNorm = (s.yFiltered - yMid) / yHalf;
+  
+      s.w = atan2(yNorm, xNorm) * 180.0 / PI + 180.0;
+  
+      // --- Updated Mapping Logic ---
+      const float adjustedTolerance = 5.0; // degrees of safe zone below lower
+      float safeLower = fmod(s.lower - adjustedTolerance + 360.0, 360.0);
+      float safeRange = fmod(s.upper - safeLower + 360.0, 360.0);
+      float safeDelta = fmod(s.w - safeLower + 360.0, 360.0);
+  
+      s.mapped = (safeDelta > safeRange) ? 1.0 : safeDelta / safeRange;
   }
 
-  // --- Override ---
-  if(useOverride){
-    generateOverrideValues();
-  }
 
-  // --- Joystick Smoothing ---
-  if(joystickFlag) {
-    int rawJoyX = analogRead(buttonPins[0]);
-    int rawJoyY = analogRead(buttonPins[1]);
+  if (useOverride) generateOverrideValues();
 
-    float joyXNext = joystickAlpha * rawJoyX + (1 - joystickAlpha) * joyXFiltered;
-    float joyYNext = joystickAlpha * rawJoyY + (1 - joystickAlpha) * joyYFiltered;
+  int rawJoyX = analogRead(joyXPin);
+  int rawJoyY = analogRead(joyYPin);
+  float joyXNext = joystickAlpha * rawJoyX + (1 - joystickAlpha) * joyXFiltered;
+  float joyYNext = joystickAlpha * rawJoyY + (1 - joystickAlpha) * joyYFiltered;
+  if (abs(joyXNext - joyXFiltered) > joystickThreshold) joyXFiltered = joyXNext;
+  if (abs(joyYNext - joyYFiltered) > joystickThreshold) joyYFiltered = joyYNext;
 
-    if (abs(joyXNext - joyXFiltered) > joystickThreshold) joyXFiltered = joyXNext;
-    if (abs(joyYNext - joyYFiltered) > joystickThreshold) joyYFiltered = joyYNext;
-  }
-
+  //Bluetooth Message
+  char msg[128];
+  int index = 0;
   for (int i = 0; i < NUM_SENSORS; i++) {
     float val = useOverride ? overrideValues[i] : sensors[i].mapped;
-
-    //Avoid sending NaN
     if (isnan(val)) val = 0.0;
-
-    Serial.print(val, 3);
-    if (i < NUM_SENSORS - 1) Serial.print(" | ");
+    index += snprintf(msg + index, sizeof(msg) - index, "%.3f,", val);
   }
-
-  Serial.print(" | ");
-  Serial.print(joyXFiltered);
-  Serial.print(" | ");
-  Serial.print(joyYFiltered);
-  Serial.print(" | ");
-  Serial.print(buttons[0].debouncedState ? "1" : "0");
-  Serial.print(" | ");
-  Serial.println(buttons[1].debouncedState ? "1" : "0");
-//  Serial.println(" | " + String(activeIndex));
-
-  // SensorPair &s = sensors[activeIndex];
-  // float range = fmod(s.upper - s.lower + 360.0, 360.0);
-  // float delta = fmod(s.w - s.lower + 360.0 + tolerance, 360.0);
-
-  // Serial.println("button 0: " + String(buttons[0].currentState) +
-  //               " button 1: " + String(buttons[1].currentState) +
-  //               " press count: " + String(s.pressCount) +
-  //               " w: " + String(s.w, 1) +
-  //               " lower: " + String(s.lower, 2) +
-  //               " upper: " + String(s.upper, 2) +
-  //               " range: " + String(range, 2) +
-  //               " delta: " + String(delta, 2) +
-  //               " mapped: " + String(s.mapped, 2));
+  
+  index += snprintf(msg + index, sizeof(msg) - index, "%.2f,%.2f,", joyXFiltered, joyYFiltered);
+  index += snprintf(msg + index, sizeof(msg) - index, "%d\n", buttons[0].debouncedState ? 0 : 1);
+  
+  BLEUartBufferedSend(msg);
 
   delay(20);
 }
