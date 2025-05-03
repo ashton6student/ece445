@@ -68,6 +68,7 @@ async def main():
         try:
             while True:
                 line = await read_serial_bytes(serial_conn, serial_rx_buffer)
+                print(line)
                 await ble_client.write_gatt_char(RX_CHAR_UUID, line, response=True)
         except KeyboardInterrupt:
             print("\n[*] Interrupted. Cleaning up...")

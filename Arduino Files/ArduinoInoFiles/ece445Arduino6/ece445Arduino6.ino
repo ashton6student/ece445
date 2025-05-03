@@ -185,7 +185,7 @@ void loop() {
       s.w = atan2(yNorm, xNorm) * 180.0 / PI + 180.0;
   
       // --- Updated Mapping Logic ---
-      const float adjustedTolerance = 5.0; // degrees of safe zone below lower
+      const float adjustedTolerance = 25.0; // degrees of safe zone below lower
       float safeLower = fmod(s.lower - adjustedTolerance + 360.0, 360.0);
       float safeRange = fmod(s.upper - safeLower + 360.0, 360.0);
       float safeDelta = fmod(s.w - safeLower + 360.0, 360.0);
