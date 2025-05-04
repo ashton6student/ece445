@@ -215,22 +215,20 @@ void loop() {
   unsigned long currentTime = millis();
 
   // --- Button Debouncing ---
-  if (!joystickFlag) {
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-      buttons[i].currentState = digitalRead(buttonPins[i]);
-      if (buttons[i].currentState != buttons[i].lastState) {
-        buttons[i].lastDebounceTime = currentTime;
-      }
-      if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay) {
-        if (buttons[i].currentState != buttons[i].debouncedState) {
-          buttons[i].debouncedState = buttons[i].currentState;
-          if (buttons[i].debouncedState == LOW) {
-            handleButtonPress(i);
-          }
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    buttons[i].currentState = digitalRead(buttonPins[i]);
+    if (buttons[i].currentState != buttons[i].lastState) {
+      buttons[i].lastDebounceTime = currentTime;
+    }
+    if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay) {
+      if (buttons[i].currentState != buttons[i].debouncedState) {
+        buttons[i].debouncedState = buttons[i].currentState;
+        if (buttons[i].debouncedState == LOW) {
+          handleButtonPress(i);
         }
       }
-      buttons[i].lastState = buttons[i].currentState;
     }
+    buttons[i].lastState = buttons[i].currentState;
   }
 
   // --- Sensor Processing ---

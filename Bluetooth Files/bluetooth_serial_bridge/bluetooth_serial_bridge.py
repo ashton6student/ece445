@@ -18,7 +18,7 @@ def setup_virtual_serial():
         ser = os.fdopen(master_fd, "rb+", buffering=0)
         return ser, slave_name
     elif system == "Windows": # com0com to get virtual COM ports. Fuck Windows.
-        COM_PORT = "COM22"  # Adjust if needed
+        COM_PORT = "COM1"  # Adjust if needed
         print(f"[Windows] Using COM port: {COM_PORT}")
         ser = serial.Serial(COM_PORT, BAUD, timeout=0)
         return ser, COM_PORT
