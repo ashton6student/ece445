@@ -65,26 +65,25 @@ project_root/
 └── README.md          # Project documentation
 ```
 
-### Firmware
+### Arduino Files and Bluetooth Files
 
 - Contains Arduino sketches for ESP32 to handle BLE communication and haptic control.
 - Implements data acquisition from potentiometers and joystick inputs.
 - Supports BLE wireless communication for real-time data transfer.
 
-### Unity Integration
+### Unity Files
 
 - Unity scripts for receiving BLE data and controlling virtual hands.
 - Uses XR Hands package for realistic hand motion and interaction.
 - Includes a test scene for verifying glove performance.
 
-### Tools
-
-- Utility Python scripts for data logging, testing, and BLE debugging.
-
-### Assets
+### 3D Files
 
 - 3D hand models and glove visualizations.
-- Sample VR environment for testing hand interactions.
+
+### PCB Files
+
+- KiCAD files for the PCBs in our project.
 
 ## Installation
 
