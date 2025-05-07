@@ -1,5 +1,7 @@
 # VR Gloves Project
 
+Note: each subfolder has its own `README.md` file that forms the ECE 445 notebook, in addition to this top level file.
+
 ## Overview
 
 The VR Gloves project aims to create a pair of wearable hand-tracking gloves for VR applications, compatible with popular VR systems like Meta Quest 2. The gloves utilize potentiometers for finger flex tracking, a servo-based haptic feedback system, and BLE communication to interact with Unity applications. This project takes inspiration from UDCAP Kickstarter gloves and LucidGloves, enhancing them with a more affordable and DIY-friendly approach.
