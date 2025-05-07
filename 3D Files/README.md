@@ -3,7 +3,7 @@
 
 ## Project Overview
 
-This folder contains a collection of 3D model files for various components for the VR glove project. The files are organized into subfolders based on their functionality or component type. These models are primarily intended for 3D printing and prototyping.
+This folder contains a collection of 3D model files for various components for the VR glove project. The files are organized into subfolders based on their functionality or component type. Take the most recent version as the current working version.
 
 ## Directory Structure
 

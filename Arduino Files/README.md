@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project contains multiple Arduino-based applications designed to interface with sensors, buttons, and servos on ESP32 devices. The main focus is to control servo movements and read joystick inputs, with the data being transmitted via serial communication.
+This folder contains various Arduino-based test sketches used throughout the development of the VR glove system. Each subfolder represents a different development or testing checkpoint. While several sketches were created for experimenting with sensor inputs, BLE, and motor control, the current active version is located in the `ece445Arduino5` folder.
 
 ### Components:
 
@@ -12,33 +12,33 @@ This project contains multiple Arduino-based applications designed to interface 
 - Servo motor
 - Potentiometer
 
-## Folder Structure
+### Development History
 
 ```
 Arduino Files/
-├── ece445PlatformIO/                # PlatformIO project for ESP32
+├── ece445PlatformIO/                # PlatformIO testing checkpoint for ESP32
 │   ├── src/                         # Source files
 │   │   └── main.cpp                 # Main application code
 │   └── platformio.ini               # PlatformIO configuration file
 ├── ArduinoInoFiles/                 # Traditional Arduino sketches
-│   ├── ece445Arduino/               # Main sketch folder
+│   ├── ece445Arduino/               # Initial sketch
 │   │   └── ece445Arduino.ino        # Primary Arduino sketch
-│   ├── ece445Arduino2/              # Additional sketches
-│   ├── ece445Arduino3/              # Additional sketches
-│   ├── ece445Arduino4/              # Additional sketches
-│   ├── ece445Arduino5/              # Additional sketches
-│   └── ece445Arduino6/              # Additional sketches
+│   ├── ece445Arduino2/              # Development checkpoints
+│   ├── ece445Arduino3/              # Development checkpoints
+│   ├── ece445Arduino4/              # Development checkpoints
+│   ├── ece445Arduino5/              # Current BLE version
+│   └── ece445Arduino6/              # Current serial version
 ```
 
 ## Installation
 
 1. Clone or download the repository.
-2. Open the PlatformIO project using VS Code or another IDE supporting PlatformIO.
-3. Connect your ESP32 device to the USB port.
-4. Upload the code using the following command:
-   ```
-   pio run --target upload
-   ```
+2. Open the desired `.ino` file in the Arduino IDE:
+   - Use `ece445Arduino5` for BLE communication.
+   - Use `ece445Arduino6` for serial communication.
+3. Connect your ESP32 board to your computer via USB.
+4. In the Arduino IDE, select the correct board type and COM port.
+5. Click the Upload button to flash the code to your ESP32.
 
 ## Usage
 
@@ -51,6 +51,5 @@ The firmware sketches support both BLE (Bluetooth Low Energy) and wired serial c
 
 ## Dependencies
 
-- PlatformIO (for compilation and upload)
 - Arduino framework for ESP32
 - ESP32Servo library

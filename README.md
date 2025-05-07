@@ -1,10 +1,14 @@
 # VR Gloves Project
 
-Note: each subfolder has its own `README.md` file that forms the ECE 445 notebook, in addition to this top level file.
+Note: each subfolder has its own `README.md` file that forms the ECE 445 notebook, in addition to this top-level file.
 
 ## Overview
 
-The VR Gloves project aims to create a pair of wearable hand-tracking gloves for VR applications, compatible with popular VR systems like Meta Quest 2. The gloves utilize potentiometers for finger flex tracking, a servo-based haptic feedback system, and BLE communication to interact with Unity applications. This project takes inspiration from UDCAP Kickstarter gloves and LucidGloves, enhancing them with a more affordable and DIY-friendly approach.
+The VR Gloves project aims to create a pair of wearable hand-tracking gloves for VR applications, compatible with popular VR systems like Meta Quest 2. The gloves utilize perpendicular Hall effect sensors and magnets for finger flex tracking, a servo-based haptic feedback system, and BLE communication to interact with Unity applications.
+
+## Inspirations
+
+This project is inspired by LucidGloves, an open-source VR glove. This project specifically attempts to take the good things from V3 and the good things from V5 to make our own unique solution. Specifically, it uses the badge reel idea from V3 and the hall-effect magnet solution from the V5 and combines them together.
 
 ## Problem Statement
 
@@ -13,10 +17,9 @@ Modern VR devices often rely on handheld controllers that do not fully immerse t
 ## Key Features
 
 - **Wireless Communication:** Uses BLE to transmit hand data to Unity applications.
-- **Finger Tracking:** Potentiometers measure finger curl, enabling fine-grained control in VR environments.
-- **Haptic Feedback:** Badge reels controlled by servo motors simulate force feedback when grasping virtual objects.
-- **Integrated VR Interaction:** Uses Unity's XR Hands package to map glove input to virtual hands.
-- **Customizable and Open Source:** Easy to replicate and customize.
+- **Finger Tracking:** Perpendicular Hall effect sensors measure finger curl using magnetic field angle changes.
+- **Haptic Feedback:** Servo motors lock the badge reels, restricting finger movement to provide haptic feedback.
+- **Integrated VR Interaction:** Uses Unity's XR Interaction Toolkit to allow for these gloves to be developed in a VR scene and can be deployed to a VR headset.
 
 ## System Design
 
@@ -25,19 +28,18 @@ The VR gloves consist of five main subsystems:
 ### 1. Power Subsystem
 
 - Uses a 7.4V Li-ion battery stepped down to 5V and 3.3V using LDO regulators.
-- Provides stable power for ESP32-S3, potentiometers, and servo motors.
-- Battery management ensures safe charging and power stability.
+- Provides stable power for ESP32-S3, hall effect sensors, and servo motors.
 
 ### 2. Sensor Subsystem
 
-- Potentiometers on each finger track the degree of bend.
+- Perpendicular Hall effect sensors paired with magnets on each finger track the degree of bend.
 - Quest Controller used for hand positioning.
 - Haptic feedback provided by servos locking badge reels.
 
 ### 3. MCU Subsystem
 
 - Uses ESP32-S3 for data acquisition, BLE communication, and haptic control.
-- Samples finger curl data at 50Hz and IMU data at 100Hz.
+- Converts raw sensor data into a usable format in Unity.
 - Transmits data via BLE to Unity with low latency (<20ms).
 
 ### 4. Controller Subsystem
@@ -48,7 +50,8 @@ The VR gloves consist of five main subsystems:
 
 ### 5. Software Subsystem
 
-- Integrates with Unity using the XR Hands package.
+- Integrates with Unity using the XR Interaction Toolkit for virtual scene deployment.
+- Virtual scene containing objects with colliders to test interaction.
 - BLE data mapped to virtual hand movements and actions.
 - Collision detection triggers haptic feedback via BLE.
 
@@ -68,18 +71,17 @@ project_root/
 ### Arduino Files and Bluetooth Files
 
 - Contains Arduino sketches for ESP32 to handle BLE communication and haptic control.
-- Implements data acquisition from potentiometers and joystick inputs.
+- Implements data acquisition from Hall effects and joystick inputs.
 - Supports BLE wireless communication for real-time data transfer.
 
 ### Unity Files
 
 - Unity scripts for receiving BLE data and controlling virtual hands.
-- Uses XR Hands package for realistic hand motion and interaction.
 - Includes a test scene for verifying glove performance.
 
 ### 3D Files
 
-- 3D hand models and glove visualizations.
+- 3D files for the glove parts.
 
 ### PCB Files
 
@@ -88,19 +90,19 @@ project_root/
 ## Installation
 
 1. Flash the ESP32 with the provided firmware in the `firmware/glove_controller/` directory.
-2. Open the Unity project from the `unity/` folder.
-3. Run the scene to test the glove inputs.
+2. Run the BLE Python bridge script located in `Bluetooth Files/`. You may need com2com software to simulate serial ports. Be sure to activate the Python virtual environment in `myenv/` and install required packages.
+3. Open the Unity project from the `Unity Files/` folder.
+4. Run the scene to test the glove inputs.
 
 ## Usage
 
 - Wear the gloves and ensure they are powered on.
-- Pair the gloves via BLE with the VR system.
 - Start the Unity scene and observe hand movement tracking.
 - Test grabbing and manipulating virtual objects to validate haptic feedback.
 
 ## Future Improvements
 
-- Enhanced haptic feedback through force-sensitive resistors.
+- Enhanced haptic feedback.
 - Integration with more VR platforms like SteamVR.
 - Improved latency optimization in BLE communication.
 
